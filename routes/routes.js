@@ -6,16 +6,18 @@ const pool = require('../dbconfig');
 //C++ Translation: name(input){ output/action }
 const router = app => {
 
+  //When starting the server, validate that the database is accessible
   console.log("Validating connection...");
   pool.getConnection()
   .then(conn => {
-    console.log("Connection succeed!");
+    console.log("Validation succeed!");
     conn.end();
   })
   .catch(err => {
     console.log("Failed to connect due to error: " + err);
   });
 
+  //For now, unspecified
   app.get('/',(request,response) => {
     console.log('Han sol·licitat /');
     response.send({
@@ -28,9 +30,8 @@ const router = app => {
     response.send(usersstatic);
   });
 
-  //Display all users
+  //Display all information from all users (ésta habrá que quitarla, es para pruebas)
   app.get('/users', (request, response) => {
-    console.log('aaaaaaaaaaaaaaaaaa');
     pool.getConnection()
       .then( conn => {
         conn.query("SELECT * FROM users")
@@ -44,6 +45,24 @@ const router = app => {
         conn.end();
       })
   });
+
+  //Display all information from user with the given id
+  app.get('/users/:id', (request, response) => {
+    const id = request.params.id;
+    pool.getConnection()
+      .then( conn => {
+        conn.query("SELECT * FROM users WHERE id=?",id)
+          .then( users => {
+            response.send(users);
+            conn.end();
+          });
+      })
+      .catch( err => {
+        console.log(err);
+        conn.end();
+      })
+  });
+
 };
 
 //Export the router
