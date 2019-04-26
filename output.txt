@@ -1,0 +1,26 @@
+/root/api/routes/routes.js:42
+];
+^
+
+SyntaxError: Unexpected token ]
+    at Module._compile (internal/modules/cjs/loader.js:743:23)
+    at Object.Module._extensions..js (internal/modules/cjs/loader.js:810:10)
+    at Module.load (internal/modules/cjs/loader.js:666:32)
+    at tryModuleLoad (internal/modules/cjs/loader.js:606:12)
+    at Function.Module._load (internal/modules/cjs/loader.js:598:3)
+    at Module.require (internal/modules/cjs/loader.js:705:19)
+    at require (internal/modules/cjs/helpers.js:14:16)
+    at Object.<anonymous> (/root/api/app.js:4:16)
+    at Module._compile (internal/modules/cjs/loader.js:799:30)
+    at Object.Module._extensions..js (internal/modules/cjs/loader.js:810:10)
+[37;40mnpm[0m [0m[31;40mERR![0m [0m[35mcode[0m ELIFECYCLE
+[0m[37;40mnpm[0m [0m[31;40mERR![0m [0m[35merrno[0m 1
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m api@1.0.0 start: `node app.js`
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m Exit status 1
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m 
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m Failed at the api@1.0.0 start script.
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m This is probably not a problem with npm. There is likely additional logging output above.
+[0m
+[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m A complete log of this run can be found in:
+[0m[37;40mnpm[0m [0m[31;40mERR![0m[35m[0m     /root/.npm/_logs/2019-04-07T16_35_49_903Z-debug.log
+[0m
