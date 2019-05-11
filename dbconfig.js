@@ -4,9 +4,9 @@ const mariadb = require('mariadb/callback');
 //Set database connection credentials
 const config = {
     host: 'localhost',
-    user: 'root',
-    password: 'toor',
-    database: 'prova_api',
+    user: 'apachito',
+    password: 'vsp',
+    database: 'vilanovasp',
 };
 
 function getConnection() {
@@ -14,12 +14,5 @@ function getConnection() {
 }
 
 
-//Export the configuration
+//Export the getConnection function
 module.exports = getConnection;
-//module.exports = mariadb;
-
-//Create a MariaDB Pool
-//const pool = mariadb.createPool(config);
-
-//Export the pool
-//module.exports = pool;
