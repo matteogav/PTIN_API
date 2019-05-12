@@ -51,13 +51,14 @@ const router = app => {
   //Display all information from all users (ésta habrá que quitarla, es para pruebas)
   app.get('/api/users', (request, response) => {
     const conn = getConnection()
-    conn.query("SELECT * FROM users", (err,res) => {
+    conn.query("SELECT * FROM usuarios", (err,res) => {
       if (err) {
         console.error(err);
         return response.status(500).send({
           message: "error intern en el sevidor"
         });
       }
+      console.log(moment().format('YYYY-MM-DD HH:mm:ss'))
       response.send(res);
       conn.end();
     });
@@ -141,9 +142,8 @@ const router = app => {
       }
     });
     //Add the new user
-    date = moment().unix()
     admin = 0
-    conn.query("INSERT INTO usuarios (nombre,apellidos,telefono,mail,fecha_registro,administrador,usuario,pass) VALUES (?,?,?,?,?,?,?,?)",[name,lastname,phone,email,date,admin,username,password], (err,res) => {
+    conn.query("INSERT INTO usuarios (nombre,apellidos,telefono,mail,fecha_registro,administrador,usuario,pass) VALUES (?,?,?,?,NOW(),?,?,?)",[name,lastname,phone,email,admin,username,password], (err,res) => {
       if (err) {
         console.error(err);
         console.log(err);
@@ -160,7 +160,7 @@ const router = app => {
     });
   });
 
-//Delete an existing user
+  //Delete an existing user
   app.delete('/api/remove_user', (request, response) => {
     var tokenDecoded = service.decodeToken(request, response)
     const conn = getConnection()
@@ -175,18 +175,207 @@ const router = app => {
       //If no rows were affected, wrong username or password were given
       if (res["affectedRows"] === 0) {
         conn.end();
-        return response.status(400).send({
+        return response.status(200).send({
+          status: 1,
           message: "credencials incorrectes"
         });
       }
       conn.end();
       return response.send({
+        status: 0,
         message: "usuari eliminat"
       });
-
-    });//end query
-    //conn.query("DELETE FROM users WHERE username=?",[username,password], (err,res) => {
+    });
   });
+
+
+  //Reserva
+  app.post('/api/reserva', (request, response) => {
+    var tokenDecoded = service.decodeToken(request, response)
+    matricula = request.body.matricula
+    parking = request.body.parking
+    hora = request.body.hora
+    if (!matricula || !parking || !hora){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      });
+    }
+    const conn = getConnection()
+    //Comprobacion coche es de usuario
+    conn.query("SELECT * FROM coches WHERE usuarioID=? AND matricula=?",[tokenDecoded.sub,matricula], (err,res) => {
+      if (err) {
+        console.error(err);
+        conn.end();
+        return response.status(500).send({
+          message: "error intern en el servidor"
+        });
+      }
+      if(Object.keys(res).length === 0){
+          console.log(res)
+          conn.end()
+          return response.status(200).send({
+            status: 1,
+            message: "dades incorrectes"
+          })
+      }
+    });
+    //Reserva una plaza aleatoria
+    conn.query("UPDATE plazas SET estado=1,matricula=? WHERE estado=0 AND parkingID=? ORDER BY RAND() LIMIT 1",[matricula,parking], (err,res) => {
+      if (err) {
+        console.error(err);
+        conn.end();
+        return response.status(500).send({
+          message: "error intern en el servidor"
+        });
+      }
+      //If no rows were affected, wrong username or password were given
+      if (res["affectedRows"] === 0) {
+        conn.end();
+        return response.status(200).send({
+          status: 1,
+          message: "no hi ha places disponibles"
+        });
+      }
+      conn.end();
+      return response.send({
+        status: 0,
+        message: "numero: ",
+        res: res,
+      });
+
+    });
+  });
+
+
+
+  //-----INFRAESTRUCTURA REQUESTS----//
+
+  app.post('/api/introduir-usuari-parking', (request, response) => {
+    const matricula = request.body.matricula
+    if (!matricula){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      });
+    }
+    const conn = getConnection()
+    conn.query("UPDATE plazas SET estado = 1, matricula = ?, hora_inicio = NOW(), pagado = 0, estado_coche = (SELECT puede_calcular FROM coches WHERE matricula = ?) WHERE estado = 0 LIMIT 1", [matricula, matricula], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      if(res["affectedRows"] === 0) {
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      conn.end()
+      return response.status(200).send({
+        status: 0,
+        message: "S'ha introduit be"
+      })
+    })
+  })
+
+  app.post('/api/elimina-usuari-parking', (request, response) => {
+    const matricula = request.body.matricula
+    if (!matricula){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      });
+    }
+    const conn = getConnection()
+    conn.query("UPDATE plazas SET estado = 0, matricula = NULL, hora_inicio = NULL, pagado = NULL, estado_coche = NULL WHERE matricula = ?", matricula, (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      if(res["affectedRows"] === 0) {
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      conn.end()
+      return response.status(200).send({
+        status: 0,
+        message: "S'ha eliminat be"
+      })
+    })
+  })
+
+  //Actualitzar estat UsuariParking. Actualitza l'estat depenent de si esta computant o lliure.
+  app.post('/api/actualitzar-estat-usuari', (request, response) => {
+    const estado_coche = request.body.estat
+    const matricula = request.body.matricula
+    if (!matricula || !estat){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      });
+    }
+    const conn = getConnection()
+    conn.query("UPDATE plazas SET estado_coche = ? where matricula = ?", [estado_coche, matricula], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern al servidor"
+        })
+      }
+      if(res["affectedRows"] === 0) {
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      conn.end()
+      return response.status(200).send({
+        status: 0,
+        message: "L'estat s'ha actualitzat be"
+      })
+    })
+  })
+
+  app.get('/api/comprovar-pagament', (request, response) => {
+    const matricula = request.body.matricula
+    if (!matricula){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      });
+    }
+    const conn = getConnection()
+    conn.query("SELECT pagado FROM plazas WHERE matricula = ?", matricula, (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern al servidor"
+        })
+      }
+      // No existeix cap usuari amb aquesta matricula
+      if(Object.keys(res).length === 0){
+        console.log(res)
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      return response.status(200).send({
+        status: 0,
+        message: "L'usuari ha efectuat el pagament"
+      })
+    })
+  })
 
 };
 

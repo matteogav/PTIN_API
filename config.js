@@ -1,3 +1,3 @@
 module.exports = {
-    SECRET_TOKEN: 'XXXX'
+    SECRET_TOKEN: 'miclavedetokens'
 }
