@@ -25,6 +25,13 @@ const router = app => {
 
 //-----API REQUESTS-------
 
+  // Peticion de prueba
+  app.post('/api/prueba2', (request, response) =>{
+     const username = request.body.username
+     response.status(200).send({message: "Hola"})
+  })
+
+
   // Petición para hacer pruebas con la app
   app.get('/api/prueba', (request, response) => {
     const username = request.body.username
@@ -92,7 +99,6 @@ const router = app => {
       }
       //username doesn't exist
       if (Object.keys(res).length === 0) {
-        console.log(res);
         conn.end();
         return response.status(200).send({
           status: 1,
@@ -116,6 +122,9 @@ const router = app => {
     const lastname = request.body.lastname;
     const phone = request.body.phone;
     const email = request.body.email;
+//    const marca = request.body.marca
+//    const modelo = request.body.modelo
+//    const matricula = request.body.matricula
     if (!username || !password || !name || !lastname || !phone || !email){
       return response.status(400).send({
         message: "existeixen camps obligatoris buits"
@@ -146,18 +155,68 @@ const router = app => {
     conn.query("INSERT INTO usuarios (nombre,apellidos,telefono,mail,fecha_registro,administrador,usuario,pass) VALUES (?,?,?,?,NOW(),?,?,?)",[name,lastname,phone,email,admin,username,password], (err,res) => {
       if (err) {
         console.error(err);
-        console.log(err);
         conn.end();
         return response.status(500).send({
           message: "error intern del servidor"
         });
       }
       conn.end();
-      return response.send({
+      return response.status(201).send({
         status: 0,
         message: "usuari creat correctament"
       });
     });
+/* Aqui empieza lo nuevo
+    console.log(marca)
+console.log(modelo)
+console.log(matricula)
+    if(marca.length !== 0 && modelo.length !== 0 && matricula !== 0){
+       conn.query("SELECT usuarioID from usuarios where usuario = ?", username, (err, res) =>{
+	if (err) {
+       	   console.error(err);
+           conn.end();
+           return response.status(500).send({
+             message: "error intern en el servidor"
+           });
+         }
+	usuarioID = res[0]["usuarioID"]
+        console.log(usuarioID)
+	// Comprovamos que esa matricula no esta en la bd
+	conn.query("SELECT matricula FROM coches WHERE matricula = ?", matricula, (err, res) => {
+      	  if(err){
+            console.error(err)
+            conn.end()
+            return response.status(500).send({
+              message: "error intern del servidor"
+            })
+          }  
+          if(!(Object.keys(res).length === 0)){
+            conn.end()
+            return response.status(200).send({
+            status: 1,
+            message: "coche ja enregistrat"
+            })
+          }
+        })
+       // Introducimos el coche si no esta ya
+       conn.query("INSERT INTO coches (matricula, usuarioID, puede_calcular, marca, modelo) VALUES (?,?,0,?,?)", [matricula, usuarioID, marca, modelo], (err, res) => {
+         if(err){
+           console.error(err)
+           conn.end()
+           return response.status(500).send({
+             message: "error intern del servidor"
+           })
+         }
+         console.log(res)
+         return response.status(200).send({
+           status: 0,
+           message: "Coche introduit correctament"
+         })
+       })
+
+     })
+     }*/
+		console.log("hola")
   });
 
   //Delete an existing user
@@ -193,9 +252,8 @@ const router = app => {
   app.post('/api/reserva', (request, response) => {
     var tokenDecoded = service.decodeToken(request, response)
     matricula = request.body.matricula
-    parking = request.body.parking
-    hora = request.body.hora
-    if (!matricula || !parking || !hora){
+    parkingID = request.body.parkingID
+    if (!matricula || !parkingID){
       return response.status(400).send({
         message: "existeixen camps obligatoris buits"
       });
@@ -211,7 +269,6 @@ const router = app => {
         });
       }
       if(Object.keys(res).length === 0){
-          console.log(res)
           conn.end()
           return response.status(200).send({
             status: 1,
@@ -219,8 +276,25 @@ const router = app => {
           })
       }
     });
-    //Reserva una plaza aleatoria
-    conn.query("UPDATE plazas SET estado=1,matricula=? WHERE estado=0 AND parkingID=? ORDER BY RAND() LIMIT 1",[matricula,parking], (err,res) => {
+    // Comprovació existeix reserva
+      conn.query("SELECT * from reserva WHERE matricula = ? AND parkingID = ?", [matricula, parkingID], (err, res) => {
+        if(err){
+          console.error(err);
+          conn.end();
+          return response.status(500).send({
+            message: "error intern en el servidor"
+          });
+        }
+        if(!(Object.keys(res).length === 0)){
+          conn.end()
+          return response.status(200).send({
+            status: 1,
+            message: "existeix reserva amb aquesta matricula i en aquest parking"
+          })
+        }
+      })
+    //Reserva una plaza
+    conn.query("INSERT INTO reserva (parkingID, matricula, hora_entrada) values (?,?, NOW())",[parkingID, matricula], (err,res) => {
       if (err) {
         console.error(err);
         conn.end();
@@ -239,26 +313,233 @@ const router = app => {
       conn.end();
       return response.send({
         status: 0,
-        message: "numero: ",
-        res: res,
+        message: "reserva realitzada correctament",
       });
 
     });
   });
+  
+  //Obtenir informació sobre els coches d'un usuari donat (matricula, marca, modelo)
+  app.get('/api/informacio-coches-usuari', (request, response) => {
+    var tokenDecoded = service.decodeToken(request, response)
+    const conn = getConnection()
+    conn.query("SELECT matricula, marca, modelo FROM coches WHERE usuarioID = ?", tokenDecoded.sub, (err, res) => {
+      if (err) {
+        console.error(err);
+        conn.end();
+        return response.status(500).send({
+          message: "error intern en el servidor"
+        })
+      }
+      if(Object.keys(res).length === 0){
+        conn.end()
+        return response.status(200).send({
+        status: 1,
+        message: "no tens cap coche registrat"
+        })
+      }
+      return response.status(200).send({
+        status: 0,
+        res
+      })
+    })
+  })
+
+  //Afegir un coche a un usuari
+
+  app.post('/api/afegir-coche-usuari', (request, response) => {
+    var tokenDecoded = service.decodeToken(request, response)
+    matricula = request.body.matricula
+    puede_calcular = request.body.puede_calcular
+    marca = request.body.marca
+    modelo = request.body.modelo
+
+    if(!matricula || !puede_calcular || !marca || !modelo){
+       return response.status(400).send({
+         message: "existeixen camps obligatoris buits"
+       })
+     }
+    //Establim connexió
+    const conn = getConnection()
+
+    //Comprovació de que el coche que vol introduir l'usuari no el te ja a la base de dades
+    conn.query("SELECT matricula FROM coches WHERE matricula = ?", matricula, (err, res) => {
+      if(err){
+	console.error(err)
+	conn.end()
+	return response.status(500).send({
+	  message: "error intern del servidor"
+	})
+      }
+      if(!(Object.keys(res).length === 0)){
+	conn.end()
+	return response.status(200).send({
+	  status: 1,
+	  message: "coche ja enregistrat"
+	})
+      }
+    })
+
+    conn.query("INSERT INTO coches (matricula, usuarioID, puede_calcular, marca, modelo) VALUES (?,?,?,?,?)", [matricula, tokenDecoded.sub, puede_calcular, marca, modelo], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }/*
+      if(res["affectedRows"] === 0){
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }*/
+      return response.status(200).send({
+        status: 0,
+        message: "Coche introduit correctament"
+      })
+    })
+  })
+
+  //Eliminar coche d'un usuari
+  app.delete('/api/eliminar-coche-usuari', (request, response) => {
+    var tokenDecoded = service.decodeToken(request, response)
+    const matricula = request.body.matricula
+    if(!matricula){
+      return response.status(400).send({
+        message: "existeixen camps obligatoris buits"
+      })
+    }
+
+    const conn = getConnection()
+    conn.query("DELETE FROM coches WHERE matricula = ? AND usuarioID = ?", [matricula, tokenDecoded.sub], (err, res) => {
+      if(err){
+	console.error(err)
+	conn.end()
+	return response.status(500).send({
+	  message: "error intern del servidor"
+        })
+      }
+      // Matricula introduida es erronea
+      if(res["affectedRows"] === 0){
+        conn.end()
+	return response.status(200).send({
+	  status: 1,
+	  message: "matricula introduida no valida"
+	})
+      }
+      conn.end()
+      return response.status(200).send({
+	status: 0,
+	message: "coche eliminat correctament"
+      })
+    })
+  })
 
 
 
   //-----INFRAESTRUCTURA REQUESTS----//
 
-  app.post('/api/introduir-usuari-parking', (request, response) => {
+  //Comprovar l'estat del coche (0,1,2) donada una matricula 
+  app.get('/api/comprovar-usuari-coche', (request, response) => {
     const matricula = request.body.matricula
+    const usuarioID = request.body.usuarioID
+    const conn = getConnection()
+    conn.query('SELECT * FROM coches WHERE matricula = ? AND usuarioID = ?', [matricula, usuarioID], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      // No existeix cap usuari amb aquesta matricula 
+      if(Object.keys(res).length === 0){
+        console.log(res)
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      return response.status(200).send({
+        status: 0
+      })
+    })
+  })
+
+ //Comprovar si un coche te una reserva a un parking especific donada la matricula i el parkingID
+ app.get('/api/comprovar-reserva-coche', (request, response) => {
+    const matricula = request.body.matricula
+    const parkingID = request.body.parkingID
+    const conn = getConnection()
+    conn.query('SELECT * FROM reserva WHERE matricula = ? AND parkingID = ?', [matricula, parkingID], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      // No existeix cap usuari amb aquesta matricula 
+      if(Object.keys(res).length === 0){
+        console.log(res)
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      return response.status(200).send({
+        status: 0,
+        message: "Hi ha un reserva per aquesta matricula"
+      }) 
+    })
+  })
+
+  //Actualitzar els recursos del parking 
+  app.post('/api/actualitzar-recursos-parking', (request, response) => {
+    const clockRate = request.body.clockRate
+    const cpuCores = request.body.cpuCores
+    const ram = request.body.ram
+    const hddSpace = request.body.hddSpace
+    const parkingID = request.body.parkingID
+    
+    const conn = getConnection()
+    conn.query('UPDATE recursos SET clockRate = ?, cpuCores = ?, ram = ?, hddSpace = ? WHERE parkingID = ?', [clockRate, cpuCores, ram, hddSpace, parkingID], (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      if(res["affectedRows"] === 0) {
+        conn.end()
+        return response.status(400).send({
+          message: "dades incorrectes"
+        })
+      }
+      conn.end()
+      return response.status(200).send({
+        status: 0,
+        message: "S'ha actualitzat be"
+      })
+    })
+  })
+
+ //Introduir coche a un parking donat un parkingID
+  app.post('/api/introduir-coche-parking', (request, response) => {
+    const matricula = request.body.matricula
+    const parkingID = request.body.parkingID
     if (!matricula){
       return response.status(400).send({
         message: "existeixen camps obligatoris buits"
       });
     }
     const conn = getConnection()
-    conn.query("UPDATE plazas SET estado = 1, matricula = ?, hora_inicio = NOW(), pagado = 0, estado_coche = (SELECT puede_calcular FROM coches WHERE matricula = ?) WHERE estado = 0 LIMIT 1", [matricula, matricula], (err, res) => {
+    conn.query("UPDATE plazas SET estado = 1, parkingID = ?, matricula = ?, hora_inicio = NOW(), pagado = 0 WHERE estado = 0 LIMIT 1", [parkingID, matricula] , (err, res) => {
       if(err){
         console.error(err)
         conn.end()
@@ -273,15 +554,26 @@ const router = app => {
           message: "dades incorrectes"
         })
       }
-      conn.end()
+      conn.query("SELECT plazaID FROM plazas WHERE matricula = ?", matricula, (err, res) => {
+        if(err){
+	  console.error(err)
+          conn.end()
+	  return response.status(500).send({ message: "error intern del servidor"})
+	}
+        plazaID = res[0]["plazaID"]
+	return response.status(200).send({status: 0, plazaID})
+      })
+
+     /* conn.end()
       return response.status(200).send({
         status: 0,
         message: "S'ha introduit be"
-      })
+      })*/
     })
   })
 
-  app.post('/api/elimina-usuari-parking', (request, response) => {
+  //Aclarar esta peticion con el grupo de infra
+  app.post('/api/eliminar-coche-parking', (request, response) => {
     const matricula = request.body.matricula
     if (!matricula){
       return response.status(400).send({
@@ -289,7 +581,7 @@ const router = app => {
       });
     }
     const conn = getConnection()
-    conn.query("UPDATE plazas SET estado = 0, matricula = NULL, hora_inicio = NULL, pagado = NULL, estado_coche = NULL WHERE matricula = ?", matricula, (err, res) => {
+    conn.query("UPDATE plazas SET estado = 0, matricula = 0, hora_inicio = NOW(), pagado = 0 WHERE matricula = ?", matricula, (err, res) => {
       if(err){
         console.error(err)
         conn.end()
@@ -312,17 +604,46 @@ const router = app => {
     })
   })
 
-  //Actualitzar estat UsuariParking. Actualitza l'estat depenent de si esta computant o lliure.
-  app.post('/api/actualitzar-estat-usuari', (request, response) => {
-    const estado_coche = request.body.estat
+  //Comprovar l'estat del coche (0,1,2) donada una matricula 
+  app.get('/api/comprovar-estat-coche', (request, response) => {
     const matricula = request.body.matricula
-    if (!matricula || !estat){
+    const conn = getConnection()
+    conn.query('SELECT estado_coche FROM coches WHERE matricula = ?', matricula, (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      // No existeix cap usuari amb aquesta matricula 
+      if(Object.keys(res).length === 0){
+        console.log(res)
+        conn.end()
+        return response.status(200).send({
+          status: 1,
+          message: "dades incorrectes"
+        })
+      }
+      estat_coche = res[0]["estado_coche"]
+      return response.status(200).send({
+	status: 0,
+        estat_coche
+      })
+    })
+  })
+
+  //Actualitzar estat UsuariParking. Actualitza l'estat depenent de si esta computant o lliure.
+  app.post('/api/actualitzar-estat-coche', (request, response) => {
+    const estado_coche = request.body.estado_coche
+    const matricula = request.body.matricula
+    if (!matricula || !estado_coche){
       return response.status(400).send({
         message: "existeixen camps obligatoris buits"
       });
     }
     const conn = getConnection()
-    conn.query("UPDATE plazas SET estado_coche = ? where matricula = ?", [estado_coche, matricula], (err, res) => {
+    conn.query("UPDATE coches SET estado_coche = ? where matricula = ?", [estado_coche, matricula], (err, res) => {
       if(err){
         console.error(err)
         conn.end()
@@ -344,7 +665,8 @@ const router = app => {
       })
     })
   })
-
+  
+  //Comprovar que un usuari donada una matricula ha pagat la plaça de parking
   app.get('/api/comprovar-pagament', (request, response) => {
     const matricula = request.body.matricula
     if (!matricula){
@@ -363,19 +685,50 @@ const router = app => {
       }
       // No existeix cap usuari amb aquesta matricula
       if(Object.keys(res).length === 0){
-        console.log(res)
         conn.end()
         return response.status(200).send({
           status: 1,
           message: "dades incorrectes"
         })
       }
+      if(res[0]["pagado"] === 1){
+     	 return response.status(200).send({
+           status: 0,
+           message: "L'usuari ha efectuat el pagament"
+      	 })
+      }
+      else {
+	return response.status(200).send({ status: 1, message: "L'usuari no ha efectuat el pagament"})
+      }
+    })
+  })
+
+  //Genera la factura per a la sortida del cotxe, donat una matricula
+  app.post('/api/generar-factura', (request, response) => {
+    const matricula = request.body.matricula
+    const conn = getConnection()
+    conn.query("SELECT matricula, marca, modelo FROM coches WHERE usuarioID = ?", tokenDecoded.sub, (err, res) => {
+      if (err) {
+        console.error(err);
+        conn.end();
+        return response.status(500).send({
+          message: "error intern en el servidor"
+        })
+      }
+      if(Object.keys(res).length === 0){
+        conn.end()
+        return response.status(200).send({
+        status: 1,
+        message: "no tens cap coche registrat"
+        })
+      }
       return response.status(200).send({
         status: 0,
-        message: "L'usuari ha efectuat el pagament"
+        res
       })
     })
   })
+
 
 };
 
