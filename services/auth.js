@@ -24,19 +24,45 @@ function decodeToken(request, response){
     return response.status(403).send({message: 'No tienes autorizacion'})
   }
   // Comprovar en la base de datos si el usuario del token es valido 
-  var tokenDecoded = jwt.decode(token, config.SECRET_TOKEN)
-
-  if(tokenDecoded.exp <= moment().unix()){
-    return response.status(401).send({ message: 'El token ha expirado'})
+  try {
+    var tokenDecoded = jwt.decode(token, config.SECRET_TOKEN)
+  }
+  catch {
+    //if(tokenDecoded.exp <= moment().unix()){
+    return response.status(401).send({ message: 'token erroneo'})
   }
 
   return tokenDecoded
 
 }
 
+function createQR (matricula) {
+  const payload = {
+    mat: matricula,
+    // El temps d'expiracio, des de que l'usuari solicita el QR fins que es valid (quan el posa al lector)
+    exp: moment().add(10, 'minutes').unix()
+  }
+  return jwt.encode(payload, config.SECRET_TOKEN)
+}
+
+function decodeQR(request,response){
+  try {
+    var QRDecoded = jwt.decode(request.body.qr, config.SECRET_TOKEN)
+    // Comprovar que no hagi expirat
+    if(QRDecoded.exp <= moment().unix()){
+      return response.status(401).send({ message: 'el QR ha expirat'})
+    }
+  }
+  catch {
+      return response.status(401).send({ message: 'QR erroni'})
+  }
+  return QRDecoded;
+}
 
 module.exports = {
   createToken,
   decodeToken,
+  createQR,
+  decodeQR,
 }
 
