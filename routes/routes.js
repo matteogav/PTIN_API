@@ -834,23 +834,25 @@ console.log(matricula)
           message: "no hi ha places lliures"
         })
       }
+      //Obtenim la plazaID donada
       conn.query("SELECT plazaID FROM plazas WHERE matricula = ?", matricula, (err, res) => {
         if(err){
 	  console.error(err)
           conn.end()
 	  return response.status(500).send({ message: "error intern del servidor"})
 	}
-        plazaID = res[0]["plazaID"]
-        conn.end();
-	return response.status(200).send({status: 0, plazaID})
-      })
-
-     /* conn.end()
-      return response.status(200).send({
-        status: 0,
-        message: "S'ha introduit be"
-      })*/
-    })
+        conn.query("DELETE FROM reserva WHERE matricula=?",matricula, (err, res) => {
+          if(err){
+            console.error(err)
+            conn.end()
+            return response.status(500).send({ message: "error intern del servidor"})
+	  }
+          plazaID = res[0]["plazaID"]
+          conn.end();
+          return response.status(200).send({status: 0, plazaID})
+        })//fi query DELETE
+      })//fi query select
+    })// fi query update
   })
 
   //El cotxe surt del parking, se'ns dona la matricula llegida al lector i el QR llegit pel lector (string encriptat)
