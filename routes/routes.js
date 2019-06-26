@@ -329,7 +329,7 @@ console.log(matricula)
     });
   });
 
-  //Obtenir totes les reserves de l'usuari 
+  //Obtenir totes les reserves de l'usuari
   app.get('/api/obtenir-reserves-usuari', (request, response) => {
     const tokenDecoded = service.decodeToken(request, response)
     const conn = getConnection()
@@ -635,7 +635,7 @@ console.log(matricula)
 
 
   // Pagament, cal generar un string encriptat amb la informacio necessaria per efectuar el pagament
-  app.get('/api/obtenir-pagament', (request, response) => {
+  app.post('/api/obtenir-pagament', (request, response) => {
     var tokenDecoded = service.decodeToken(request, response)
     const matricula = request.body.matricula
     if(!matricula){
@@ -646,7 +646,7 @@ console.log(matricula)
 
     const conn = getConnection()
     //Comprova que el cotxe es de l'usuari
-    conn.query("SELECT FROM coches WHERE matricula = ? AND usuarioID = ?", [matricula, tokenDecoded.sub], (err, res) => {
+    conn.query("SELECT matricula FROM coches WHERE matricula = ? AND usuarioID = ?", [matricula, tokenDecoded.sub], (err, res) => {
       if(err){
 	console.error(err)
 	conn.end()
@@ -662,9 +662,8 @@ console.log(matricula)
           message: "dades incorrectes"
         })
       }
-    })
     // Comprova que el cotxe esta en un parking
-    conn.query("SELECT FROM plazas WHERE matricula = ?", matricula, (err, res) => {
+    conn.query("SELECT matricula FROM plazas WHERE matricula = ?", matricula, (err, res) => {
       if(err){
 	console.error(err)
 	conn.end()
@@ -680,13 +679,14 @@ console.log(matricula)
           message: "dades incorrectes"
         })
       }
-    })
     conn.end()
     // Si les dades son correctes, genera un string encriptat
     const qr = service.createQR(matricula)
     return response.status(200).send({
       status: 0,
       qr: qr,
+    })
+    })
     })
   })
 
