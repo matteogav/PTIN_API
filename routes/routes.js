@@ -587,10 +587,11 @@ console.log(matricula)
     })
   })
 
-  //Obtenir totes les marcas i models de cotxe de la bd
-  app.get('/api/obtenir-marcas', (request, response) => {
+  //Obtenir totes les marcass de cotxe de la bd
+  app.get('/api/obtenir-models', (request, response) => {
+    const marca = request.body.marca
     const conn = getConnection()
-    conn.query("SELECT * FROM models_coches", (err, res) => {
+    conn.query("SELECT modelo FROM models_coches WHERE marca=?", marca,(err, res) => {
       if(err){
         console.error(err)
         conn.end()
@@ -600,11 +601,30 @@ console.log(matricula)
       }
       conn.end()
       return response.status(200).send({
-        res
+        status: 0,
+        marca: res[0]["marca"]
       })
     })
   })
 
+  //Obtenir tots els models de cotxe d'una marca donada de la bd
+  app.get('/api/obtenir-marcas', (request, response) => {
+    const conn = getConnection()
+    conn.query("SELECT marca FROM models_coches GROUP BY marca", (err, res) => {
+      if(err){
+        console.error(err)
+        conn.end()
+        return response.status(500).send({
+          message: "error intern del servidor"
+        })
+      }
+      conn.end()
+      return response.status(200).send({
+        status: 0,
+        marca: res[0]["marca"]
+      })
+    })
+  })
 
   //Obtenir informacio sobre les estancies dels cotxes d'un usuari donat (matricula, parking.nom)
   app.get('/api/estancies-cotxes-usuari', (request, response) => {
