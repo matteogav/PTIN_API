@@ -610,7 +610,7 @@ console.log(matricula)
   //Obtenir tots els models de cotxe d'una marca donada de la bd
   app.get('/api/obtenir-marcas', (request, response) => {
     const conn = getConnection()
-    conn.query("SELECT marca FROM models_coches GROUP BY marca", (err, res) => {
+    conn.query("SELECT distinct marca FROM models_coches", (err, res) => {
       if(err){
         console.error(err)
         conn.end()
@@ -621,7 +621,7 @@ console.log(matricula)
       conn.end()
       return response.status(200).send({
         status: 0,
-        marca: res[0]["marca"]
+        res,
       })
     })
   })

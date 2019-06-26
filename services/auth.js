@@ -50,11 +50,17 @@ function decodeQR(request,response){
     var QRDecoded = jwt.decode(request.body.qr, config.SECRET_TOKEN)
     // Comprovar que no hagi expirat
     if(QRDecoded.exp <= moment().unix()){
-      return response.status(401).send({ message: 'el QR ha expirat'})
+      return response.status(200).send({
+        status: 1,
+        message: 'el QR ha expirat',
+      })
     }
   }
   catch {
-      return response.status(401).send({ message: 'QR erroni'})
+      return response.status(200).send({
+        status: 1,
+        message: 'QR erroni',
+      })
   }
   return QRDecoded;
 }
