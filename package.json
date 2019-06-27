@@ -12,6 +12,8 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
+    "fs": "0.0.1-security",
+    "https": "^1.0.0",
     "jwt-simple": "^0.5.6",
     "mariadb": "^2.0.3",
     "moment": "^2.24.0",

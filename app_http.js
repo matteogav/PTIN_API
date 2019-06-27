@@ -26,9 +26,9 @@ routes(app);
 
 
 //Start the server
-const server=https.createServer(options,app).listen(port);
+// const server=https.createServer(options,app).listen(port);
 
-/*app.listen(port,(error)=>{
+const server = app.listen(port,(error)=>{
   if(error) return console.log(`Error: ${error}`);
   console.log(`Server listening on port ${server.address().port}`);
-});*/
+});
