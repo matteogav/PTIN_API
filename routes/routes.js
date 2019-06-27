@@ -227,7 +227,7 @@ const router = app => {
       }
     });
     // Comprovació existeix reserva
-    conn.query("SELECT matricula from reserva WHERE matricula = ?", [matricula, parkingID], (err, res) => {
+    conn.query("SELECT matricula from reserva WHERE matricula = ? AND parkingID=? AND hora_entrada=?", [matricula, parkingID, hora_entrada], (err, res) => {
       if(err){
         console.error(err);
         conn.end();
@@ -239,7 +239,7 @@ const router = app => {
         conn.end()
         return response.status(200).send({
           status: 1,
-          message: "existeix reserva amb aquesta matricula"
+          message: "ja existeix reserva amb aquesta matricula, parking i dia i hora"
         })
       }
     })
@@ -422,7 +422,7 @@ const router = app => {
 
 
   //Actualitzar parametre puede_calcular de cotxes
-  app.get('/api/actualitzar-cesio-computacio', (request, response) => {
+  app.post('/api/actualitzar-cesio-computacio', (request, response) => {
     const tokenDecoded = service.decodeToken(request, response)
     const matricula = request.body.matricula
     const puede_calcular = request.body.puede_calcular
